@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f3f6f8">
+  <meta name="description" content="Panel de gestión de emergencias hospitalarias con triaje dinámico">
+  <title>Centro de mando | Hospital inteligente</title>
+  <link rel="stylesheet" href="hospital.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Hospital inteligente, inicio">
+      <span class="brand-mark" aria-hidden="true">✚</span>
+      <span class="brand-copy"><b>HOSPITAL</b><small>CENTRO DE MANDO</small></span>
+    </a>
+    <div class="topbar-right">
+      <span class="connection"><i></i> SISTEMA OPERATIVO</span>
+      <span class="top-divider"></span>
+      <span class="clock-label">TIEMPO SIMULADO <b id="clock">00:00</b></span>
+    </div>
+  </header>
+
+  <main id="inicio">
+    <section class="hero">
+      <div>
+        <div class="breadcrumb">OPERACIONES <span>/</span> EMERGENCIAS</div>
+        <h1>Gestión de <em>triaje</em></h1>
+        <p class="hero-copy">Supervisa la atención, reasigna prioridades y responde a cambios en tiempo real.</p>
+      </div>
+      <div class="sim-controls" aria-label="Controles de simulación">
+        <button id="runBtn" class="button primary"><span class="button-icon">▶</span> Iniciar simulación</button>
+        <button id="stepBtn" class="button"><span class="button-icon">＋</span> Avanzar 1 min</button>
+        <button id="resetBtn" class="button button-quiet">Reiniciar</button>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Indicadores del hospital">
+      <article class="stat-card"><div class="stat-top"><span>EN ESPERA</span><i class="stat-dot teal"></i></div><b id="waitingCount">0</b><small><span id="upcomingCount">0</span> próximas llegadas programadas</small></article>
+      <article class="stat-card"><div class="stat-top"><span>EN ATENCIÓN</span><i class="stat-dot amber"></i></div><b id="activeCount">0</b><small>consultorios ocupados</small></article>
+      <article class="stat-card"><div class="stat-top"><span>ATENDIDOS</span><i class="stat-dot blue"></i></div><b id="doneCount">0</b><small>casos completados</small></article>
+      <article class="stat-card stat-critical"><div class="stat-top"><span>CASOS CRÍTICOS</span><i class="stat-dot red"></i></div><b id="criticalCount">0</b><small>pacientes nivel 1</small></article>
+      <article class="stat-card"><div class="stat-top"><span>ESPERA PROMEDIO</span><i class="stat-dot purple"></i></div><b id="avgWait">0 <small>min</small></b><small>entre casos atendidos</small></article>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="workspace">
+        <section class="content-section" aria-labelledby="roomsTitle">
+          <div class="section-heading">
+            <div><p class="eyebrow">CAPACIDAD DEL HOSPITAL</p><h2 id="roomsTitle">Consultorios <span id="roomSummary" class="heading-summary">3 de 3 disponibles</span></h2></div>
+            <span id="timeLabel" class="time-label">MINUTO 0</span>
+          </div>
+          <div id="rooms" class="rooms"></div>
+        </section>
+
+        <section class="content-section queue-section" aria-labelledby="queueTitle">
+          <div class="section-heading queue-heading">
+            <div><p class="eyebrow">PRIORIZACIÓN EN TIEMPO REAL</p><h2 id="queueTitle">Cola de pacientes <span id="queueBadge" class="count-badge">0</span></h2></div>
+            <div class="mode-switch" role="group" aria-label="Modo de priorización">
+              <button type="button" data-mode="dynamic" class="selected">Prioridad dinámica</button>
+              <button type="button" data-mode="fifo">FIFO</button>
+            </div>
+          </div>
+          <div id="agingNote" class="aging-note"><span class="aging-icon">↗</span><div><b>Envejecimiento activo</b><small>Cada 5 minutos de espera, la prioridad mejora un nivel, hasta nivel 1.</small></div><span class="rule-tag">REGLA ACTIVA</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>PACIENTE</th><th>GRAVEDAD</th><th>LLEGADA</th><th>ESPERA</th><th>PRIORIDAD EFECTIVA</th><th>ACCIÓN</th></tr></thead>
+              <tbody id="queueRows"></tbody>
+            </table>
+            <div id="emptyQueue" class="empty"><span class="empty-mark">✓</span><b>La cola está despejada</b><small>Registra un paciente o carga la secuencia de práctica para empezar.</small></div>
+          </div>
+          <div class="served-heading"><div><p class="eyebrow">HISTORIAL DE ATENCIONES</p><h3>Pacientes atendidos <span id="servedCount" class="count-badge">0</span></h3></div><small>Los nombres permanecen visibles después de finalizar la atención.</small></div>
+          <div class="table-wrap served-table-wrap"><table><thead><tr><th>PACIENTE</th><th>GRAVEDAD</th><th>LLEGADA</th><th>ATENCIÓN FINALIZADA</th><th>ESPERA</th><th>FICHA</th></tr></thead><tbody id="servedRows"></tbody></table><div id="emptyServed" class="empty"><b>Aún no hay atenciones finalizadas</b><small>Los pacientes aparecerán aquí al terminar su atención.</small></div></div>
+        </section>
+      </div>
+
+      <aside class="side-column" aria-label="Herramientas de simulación">
+        <section class="panel panel-entry">
+          <div class="panel-heading"><div><p class="eyebrow">ADMISIÓN</p><h3>Registrar paciente</h3></div><span class="panel-icon teal-icon">＋</span></div>
+          <form id="patientForm">
+            <label>Nombre completo<input name="name" placeholder="Ej. Ana Pérez" required maxlength="70" autocomplete="name"></label>
+            <label>Identificador<input name="id" placeholder="Ej. P-041" required maxlength="16" autocomplete="off"></label>
+            <div class="form-row"><label>Gravedad<select name="severity"><option value="1">Nivel 1 · Crítico</option><option value="2">Nivel 2 · Urgente</option><option value="3" selected>Nivel 3 · Moderado</option><option value="4">Nivel 4 · Leve</option><option value="5">Nivel 5 · No urgente</option></select></label><label>Atención<input name="duration" type="number" min="1" max="90" value="8" required><small class="field-unit">minutos estimados</small></label></div>
+            <button class="button primary full" type="submit">＋ <span>Añadir paciente</span></button>
+          </form>
+          <div class="panel-separator"><span>o usa la secuencia guiada</span></div>
+          <button id="generateBtn" class="button outline full">Cargar 40 pacientes de prueba</button>
+          <p class="panel-footnote">Llegadas cada 2 minutos · datos reproducibles</p>
+        </section>
+
+        <section class="panel doctor-panel">
+          <div class="panel-heading"><div><p class="eyebrow">RECURSOS CLÍNICOS</p><h3>Médicos y consultorios</h3></div><span class="panel-icon blue-icon">♙</span></div>
+          <div id="staffList"></div>
+          <p class="panel-hint">Desactiva un recurso para simular la salida de un médico.</p>
+        </section>
+
+        <section class="panel tools-panel">
+          <div class="panel-heading"><div><p class="eyebrow">CONTROL DE TURNO</p><h3>Acciones operativas</h3></div><span class="panel-icon teal-icon">⌘</span></div>
+          <p class="panel-description">Atajos para demostrar eventos de emergencia y validar los registros.</p>
+          <div class="quick-actions">
+            <button id="admitNextBtn" class="quick-action" type="button"><span class="quick-icon">＋</span><span><b>Admitir próxima llegada</b><small>Ingresa el siguiente paciente programado</small></span><i>›</i></button>
+            <button id="worsenNextBtn" class="quick-action" type="button"><span class="quick-icon alert">↗</span><span><b>Empeorar siguiente paciente</b><small>Sube un nivel la gravedad en cola</small></span><i>›</i></button>
+            <button id="verifyBtn" class="quick-action" type="button"><span class="quick-icon check">✓</span><span><b>Verificar integridad</b><small>Busca duplicados, pérdidas o doble atención</small></span><i>›</i></button>
+            <button id="exportBtn" class="quick-action" type="button"><span class="quick-icon file">↓</span><span><b>Descargar reporte CSV</b><small>Exporta la lista y el estado de pacientes</small></span><i>›</i></button>
+          </div>
+          <div id="auditResult" class="audit-result" aria-live="polite">La verificación aún no se ha ejecutado.</div>
+        </section>
+
+        <section class="panel compare-panel">
+          <div class="panel-heading"><div><p class="eyebrow">ANÁLISIS COMPARATIVO</p><h3>Evaluar algoritmos</h3></div><span class="panel-icon amber-icon">⇄</span></div>
+          <p class="panel-description">Compara FIFO y triaje dinámico con la misma secuencia de 40 pacientes.</p>
+          <button id="compareBtn" class="button outline full">Comparar resultados</button>
+          <div id="comparison" class="comparison hidden" aria-live="polite"></div>
+        </section>
+
+        <section class="panel proof-panel">
+          <div class="panel-heading"><div><p class="eyebrow">CONTROL DE INTEGRIDAD</p><h3>Seguimiento de casos</h3></div><span class="panel-icon green-icon">✓</span></div>
+          <div class="integrity"><span>Registrados <b id="registeredTotal">0</b></span><span>En sistema <b id="systemTotal">0</b></span><span>Duplicados <b id="duplicateTotal">0</b></span><span>Perdidos <b id="lostTotal">0</b></span></div>
+          <button id="worsenThreeBtn" class="button outline full">Empeorar 3 pacientes</button>
+        </section>
+      </aside>
+    </section>
+  </main>
+  <footer><span>HOSPITAL INTELIGENTE</span><span>SIMULADOR ACADÉMICO · HEAP BINARIO · FIFO · LISTA ENLAZADA</span></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="hospital.js"></script>
+</body>
+</html>
